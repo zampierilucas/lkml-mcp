@@ -30,7 +30,7 @@ Install as a Desktop Extension:
 Add to Claude Code MCP configuration:
 
 ```bash
-claude mcp add -s user lkml uvx -- --from "git+https://github.com/yourusername/lkml-mcp" lkml-mcp
+claude mcp add -s user lkml uvx -- --from "git+https://github.com/zampierilucas/lkml-mcp" lkml-mcp
 ```
 
 Or manually edit `~/.claude.json`:
@@ -41,7 +41,7 @@ Or manually edit `~/.claude.json`:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/yourusername/lkml-mcp",
+        "git+https://github.com/zampierilucas/lkml-mcp",
         "lkml-mcp"
       ]
     }
@@ -61,7 +61,7 @@ Or manually edit `~/.claude.json`:
     "command": "uvx",
     "args": [
       "--from",
-      "git+https://github.com/yourusername/lkml-mcp",
+      "git+https://github.com/zampierilucas/lkml-mcp",
       "lkml-mcp"
     ]
   }
@@ -72,7 +72,7 @@ Or manually edit `~/.claude.json`:
 
 Clone and install locally:
 ```bash
-git clone https://github.com/yourusername/lkml-mcp.git
+git clone https://github.com/zampierilucas/lkml-mcp.git
 cd lkml-mcp
 pip install -e .
 ```

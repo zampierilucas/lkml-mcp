@@ -14,10 +14,10 @@
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/lzampier/lkml-mcp",
+        "git+https://github.com/zampierilucas/lkml-mcp",
         "lkml-mcp"
       ]
     }
   },
-  "homepage": "https://github.com/lzampier/lkml-mcp"
+  "homepage": "https://github.com/zampierilucas/lkml-mcp"
 }

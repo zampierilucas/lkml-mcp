@@ -288,87 +288,89 @@ class LKMLClient:
                     continue
 
                 msg_id = entry["message_id"]
-                prefix_match = re.match(r"^(\d+\.\d+)-\d+-", msg_id)
-                if prefix_match:
-                    series_key = prefix_match.group(1)
-                else:
-                    series_key = title
-                    series_key = re.sub(r"(\[(?:RFC\s+)?PATCH)\s+v\d+", r"\1", series_key)
-                    series_key = re.sub(
-                        r"\[(?:RFC\s+)?PATCH[^\]]*\s+\d+/\d+\]",
-                        "[PATCH X/N]",
-                        series_key,
-                    )
 
+                # Use timestamp prefix for within-version grouping (cover letter + patches)
+                # This groups all messages from the same patch series submission together
+                prefix_match = re.match(r"^(\d+\.\d+)", msg_id)
+                if prefix_match:
+                    entry["version_key"] = prefix_match.group(1)
+                else:
+                    entry["version_key"] = msg_id
+
+                # Use normalized title for cross-version grouping
+                # This groups different versions (v1, v2, v3) of the same series together
+                series_key = title
+                # Normalize the entire patch prefix to group all versions together
+                # Remove RFC, version numbers, and patch numbers
+                series_key = re.sub(
+                    r"\[(?:RFC\s+)?PATCH[^\]]*\]",
+                    "[PATCH]",
+                    series_key,
+                )
                 entry["series_key"] = series_key
+
                 filtered_entries.append(entry)
 
             series_list = []
-            seen_series = set()
-            series_with_cover = set()
+            seen_series = set()  # Tracks series_key (cross-version)
+            seen_versions = set()  # Tracks version_key (within-version)
 
+            # First pass: Find cover letters (highest priority)
             for entry in filtered_entries:
                 title = entry["title"]
-                msg_id = entry["message_id"]
                 series_key = entry["series_key"]
+                version_key = entry["version_key"]
 
-                if series_key in seen_series:
-                    continue
-
-                cover_pattern = r"\[(?:RFC\s+)?PATCH[^\]]*\s+0/(\d+)\]"
-                cover_match = re.search(cover_pattern, title)
-
+                cover_match = re.search(r"\[(?:RFC\s+)?PATCH[^\]]*\s+0/(\d+)\]", title)
                 if cover_match:
-                    total_patches = int(cover_match.group(1))
-                    series_list.append(
-                        {
-                            "message_id": msg_id,
-                            "title": title,
-                            "updated": entry["updated"],
-                            "url": entry["url"],
-                            "type": "cover_letter",
-                            "total_patches": total_patches,
-                        }
-                    )
-                    seen_series.add(series_key)
-                    series_with_cover.add(series_key)
+                    # Always mark version as seen, even if we skip this cover letter
+                    # This prevents patches from skipped versions from being added
+                    seen_versions.add(version_key)
 
+                    if series_key not in seen_series:
+                        series_list.append(
+                            {
+                                "message_id": entry["message_id"],
+                                "title": title,
+                                "updated": entry["updated"],
+                                "url": entry["url"],
+                                "type": "cover_letter",
+                                "total_patches": int(cover_match.group(1)),
+                            }
+                        )
+                        seen_series.add(series_key)
+
+            # Second pass: Find first patches or standalone patches for series without cover letters
             for entry in filtered_entries:
                 title = entry["title"]
-                msg_id = entry["message_id"]
                 series_key = entry["series_key"]
+                version_key = entry["version_key"]
 
-                if series_key in seen_series:
+                if series_key in seen_series or version_key in seen_versions:
                     continue
 
-                first_patch_pattern = r"\[(?:RFC\s+)?PATCH[^\]]*\s+1/(\d+)\]"
-                first_patch_match = re.search(first_patch_pattern, title)
-
-                if first_patch_match and series_key not in series_with_cover:
-                    total_patches = int(first_patch_match.group(1))
+                # Check for first patch in a series (e.g., [PATCH 1/3])
+                first_patch_match = re.search(r"\[(?:RFC\s+)?PATCH[^\]]*\s+1/(\d+)\]", title)
+                if first_patch_match:
                     series_list.append(
                         {
-                            "message_id": msg_id,
+                            "message_id": entry["message_id"],
                             "title": title,
                             "updated": entry["updated"],
                             "url": entry["url"],
                             "type": "first_patch",
-                            "total_patches": total_patches,
+                            "total_patches": int(first_patch_match.group(1)),
                         }
                     )
                     seen_series.add(series_key)
+                    seen_versions.add(version_key)
                     continue
 
-                patch_pattern = r"\[(?:RFC\s+)?PATCH[^\]]*\s+(\d+)/(\d+)\]"
-                if re.search(patch_pattern, title):
-                    seen_series.add(series_key)
-                    continue
-
-                single_patch_pattern = r"\[(?:RFC\s+)?PATCH[^\]]*\](?!\s+\d+/\d+)"
-                if re.search(single_patch_pattern, title):
+                # Check for standalone patch (e.g., [PATCH] without X/N notation)
+                if re.search(r"\[(?:RFC\s+)?PATCH[^\]]*\]", title) and not re.search(r"\d+/\d+", title):
                     series_list.append(
                         {
-                            "message_id": msg_id,
+                            "message_id": entry["message_id"],
                             "title": title,
                             "updated": entry["updated"],
                             "url": entry["url"],
@@ -377,6 +379,7 @@ class LKMLClient:
                         }
                     )
                     seen_series.add(series_key)
+                    seen_versions.add(version_key)
 
             return {
                 "email": email,

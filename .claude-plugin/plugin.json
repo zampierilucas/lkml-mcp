@@ -1,0 +1,22 @@
+{
+  "name": "lkml-mcp",
+  "description": "Linux Kernel Mailing List (LKML) API server for accessing kernel discussions, patches, and threads",
+  "author": {
+    "name": "Lucas Zampieri",
+    "email": "lzampier@redhat.com"
+  },
+  "repository": "https://gitlab.cee.redhat.com/lzampier/lkml-mcp",
+  "license": "MIT",
+  "keywords": ["lkml", "kernel", "linux", "mailing-list", "patches"],
+  "mcpServers": {
+    "lkml": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://gitlab.cee.redhat.com/lzampier/lkml-mcp",
+        "lkml-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

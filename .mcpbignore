@@ -1,0 +1,56 @@
+# Git
+.git/
+.gitignore
+
+# Python cache and builds
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+
+# Linting cache
+.ruff_cache/
+
+# Docs and examples (not needed in runtime)
+docs/
+examples/
+tests/
+
+# Old mcpb files
+*.mcpb
+
+# Markdown files (except README)
+CHANGELOG.md
+
+# License is good to keep
+# README is good to keep
+# pyproject.toml is needed
+# src/ is needed
+# manifest.json is needed

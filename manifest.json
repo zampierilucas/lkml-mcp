@@ -1,0 +1,23 @@
+{
+  "manifest_version": "0.2",
+  "name": "lkml",
+  "version": "0.1.0",
+  "description": "Linux Kernel Mailing List (LKML) thread retrieval via lore.kernel.org",
+  "author": {
+    "name": "Lucas Zampieri",
+    "email": "lzampier@redhat.com"
+  },
+  "server": {
+    "type": "python",
+    "entry_point": "src/lkml_mcp/server.py",
+    "mcp_config": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/lzampier/lkml-mcp",
+        "lkml-mcp"
+      ]
+    }
+  },
+  "homepage": "https://github.com/lzampier/lkml-mcp"
+}

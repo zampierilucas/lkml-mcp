@@ -16,6 +16,74 @@ A Model Context Protocol (MCP) server for accessing Linux Kernel Mailing List th
 - **uvx** - Package runner for Python (install with `pip install uv`)
 - Internet access to `https://lore.kernel.org`
 
+## Usage Examples
+
+### Fetch a complete thread
+```
+lkml_get_thread with message_id: "20251111105634.1684751-1-lzampier@redhat.com"
+```
+
+### Fetch raw message content
+```
+lkml_get_raw with message_id: "20251111105634.1684751-1-lzampier@redhat.com"
+```
+
+Note: Message IDs can be provided with or without angle brackets (e.g., `<message-id>` or `message-id`).
+
+## Tool Reference
+
+### lkml_get_thread
+- **Parameters**:
+  - `message_id` (string) - The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). Can be provided with or without angle brackets.
+- **Returns**: All messages in the thread with the following fields for each message:
+  - `subject`: Email subject line
+  - `from`: Sender information
+  - `date`: Message timestamp
+  - `message-id`: Unique message identifier
+  - `in-reply-to`: Parent message ID (if applicable)
+  - `body`: Message content
+
+**Thread Context Preservation**: The tool maintains the full conversation context in two ways:
+
+1. **Thread Structure**: Preserves the `in-reply-to` field linking each reply to its parent message, enabling reconstruction of the discussion tree and tracking of conversation branches.
+
+2. **Quoted Context**: Preserves the complete message body including quoted text (lines starting with `>`) from previous messages. This allows you to see exactly what the user was commenting on by maintaining the quoted lines above their inline responses.
+
+Example thread structure:
+```
+Message A (initial patch)
+├─ Message B (in-reply-to: A) - reviewer comment
+│  └─ Message C (in-reply-to: B) - author response
+└─ Message D (in-reply-to: A) - different reviewer comment
+```
+
+C Example of preserved quoted context in a reply:
+```
+> +    ret = kvm_read_guest(vcpu->kvm, gpa, &data, sizeof(data));
+> +    if (ret < 0)
+> +        return ret;
+
+This looks correct, but you should also handle the case where ret == 0
+since kvm_read_guest() can return 0 for a partial read.
+```
+
+### lkml_get_raw
+- **Parameters**:
+  - `message_id` (string) - The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). Can be provided with or without angle brackets.
+- **Returns**: Raw RFC822 formatted message including all headers and MIME content
+
+## How It Works
+
+The server fetches data from lore.kernel.org using stable message ID URLs with automatic mailing list detection:
+- Thread data: `https://lore.kernel.org/r/{message-id}/t.mbox.gz` (compressed mbox format)
+  - Uses the `/r/` (redirect) endpoint which automatically detects the correct mailing list
+  - Works with any list: lkml, linux-riscv, netdev, devicetree, and all others hosted on lore.kernel.org
+- Raw messages: `https://lore.kernel.org/r/{message-id}/raw` (RFC822 format)
+
+The `/r/` endpoint redirects to `/all/` which provides cross-list message access without requiring hardcoded mailing list names.
+
+Messages are parsed to extract relevant fields and presented in a structured format for easy consumption by LLM tools.
+
 ## Installation by Platform
 
 ### Claude Code (CLI)
@@ -90,64 +158,6 @@ Then configure in your MCP client:
   }
 }
 ```
-
-## Usage Examples
-
-### Fetch a complete thread
-```
-lkml_get_thread with message_id: "20251111105634.1684751-1-lzampier@redhat.com"
-```
-
-### Fetch raw message content
-```
-lkml_get_raw with message_id: "20251111105634.1684751-1-lzampier@redhat.com"
-```
-
-Note: Message IDs can be provided with or without angle brackets (e.g., `<message-id>` or `message-id`).
-
-## API Reference
-
-### lkml_get_thread
-- **Parameters**:
-  - `message_id` (string) - The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). Can be provided with or without angle brackets.
-- **Returns**: All messages in the thread with the following fields for each message:
-  - `subject`: Email subject line
-  - `from`: Sender information
-  - `date`: Message timestamp
-  - `message-id`: Unique message identifier
-  - `in-reply-to`: Parent message ID (if applicable)
-  - `body`: Message content
-
-**Thread Context Preservation**: The tool maintains the full conversation context by preserving the `in-reply-to` field, which links each reply to its parent message. This allows you to:
-- Reconstruct the complete discussion tree
-- Identify which message each reply is responding to
-- Follow conversation branches in complex multi-participant threads
-- Understand the chronological and logical flow of the discussion
-
-Example thread structure:
-```
-Message A (initial patch)
-├─ Message B (in-reply-to: A) - reviewer comment
-│  └─ Message C (in-reply-to: B) - author response
-└─ Message D (in-reply-to: A) - different reviewer comment
-```
-
-### lkml_get_raw
-- **Parameters**:
-  - `message_id` (string) - The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). Can be provided with or without angle brackets.
-- **Returns**: Raw RFC822 formatted message including all headers and MIME content
-
-## How It Works
-
-The server fetches data from lore.kernel.org using stable message ID URLs with automatic mailing list detection:
-- Thread data: `https://lore.kernel.org/r/{message-id}/t.mbox.gz` (compressed mbox format)
-  - Uses the `/r/` (redirect) endpoint which automatically detects the correct mailing list
-  - Works with any list: lkml, linux-riscv, netdev, devicetree, and all others hosted on lore.kernel.org
-- Raw messages: `https://lore.kernel.org/r/{message-id}/raw` (RFC822 format)
-
-The `/r/` endpoint redirects to `/all/` which provides cross-list message access without requiring hardcoded mailing list names.
-
-Messages are parsed to extract relevant fields and presented in a structured format for easy consumption by LLM tools.
 
 ## Development
 

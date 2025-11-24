@@ -4,8 +4,10 @@ A Model Context Protocol (MCP) server for accessing Linux Kernel Mailing List th
 
 ## Features
 
-- **lkml_get_thread**: Fetch a full thread by message ID, returning all messages in the thread with structured metadata (subject, from, date, message-id, in-reply-to, body content)
+- **lkml_get_thread**: Fetch a full thread by message ID, returning all messages in the thread with structured metadata (subject, from, date, message-id, in-reply-to, body content). By default, filters out automated bot messages
 - **lkml_get_raw**: Fetch a single message in raw RFC822 format, useful for getting raw MIME bodies, headers, or inline diffs
+- **lkml_get_user_series**: Find recent patch series and messages by user email address. Returns a list of patch series with cover letters and patches grouped together, plus standalone messages
+- **lkml_search_patches**: Search for patches by keywords, subsystem, author, or other criteria. Returns matching patch series and individual patches
 - **Cross-mailing-list support**: Works with any mailing list on lore.kernel.org without hardcoding list names (lkml, linux-riscv, netdev, devicetree, etc.)
 
 ## Prerequisites
@@ -15,15 +17,6 @@ A Model Context Protocol (MCP) server for accessing Linux Kernel Mailing List th
 - Internet access to `https://lore.kernel.org`
 
 ## Installation by Platform
-
-### Claude Desktop
-
-Install as a Desktop Extension:
-
-1. Download `lkml.mcpb` from this repository or build it: `mcpb pack . lkml.mcpb`
-2. Open Claude Desktop → Settings → Extensions
-3. Drag and drop `lkml.mcpb` into the Extensions window
-4. Click "Enable" to activate the extension
 
 ### Claude Code (CLI)
 
@@ -48,6 +41,15 @@ Or manually edit `~/.claude.json`:
   }
 }
 ```
+
+### Claude Desktop
+
+Install as a Desktop Extension:
+
+1. Download `lkml.mcpb` from this repository or build it: `mcpb pack . lkml.mcpb`
+2. Open Claude Desktop → Settings → Extensions
+3. Drag and drop `lkml.mcpb` into the Extensions window
+4. Click "Enable" to activate the extension
 
 ### Cursor IDE
 
@@ -116,6 +118,20 @@ Note: Message IDs can be provided with or without angle brackets (e.g., `<messag
   - `in-reply-to`: Parent message ID (if applicable)
   - `body`: Message content
 
+**Thread Context Preservation**: The tool maintains the full conversation context by preserving the `in-reply-to` field, which links each reply to its parent message. This allows you to:
+- Reconstruct the complete discussion tree
+- Identify which message each reply is responding to
+- Follow conversation branches in complex multi-participant threads
+- Understand the chronological and logical flow of the discussion
+
+Example thread structure:
+```
+Message A (initial patch)
+├─ Message B (in-reply-to: A) - reviewer comment
+│  └─ Message C (in-reply-to: B) - author response
+└─ Message D (in-reply-to: A) - different reviewer comment
+```
+
 ### lkml_get_raw
 - **Parameters**:
   - `message_id` (string) - The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). Can be provided with or without angle brackets.
@@ -132,16 +148,6 @@ The server fetches data from lore.kernel.org using stable message ID URLs with a
 The `/r/` endpoint redirects to `/all/` which provides cross-list message access without requiring hardcoded mailing list names.
 
 Messages are parsed to extract relevant fields and presented in a structured format for easy consumption by LLM tools.
-
-## Error Handling
-
-The server includes error handling for:
-- Invalid message IDs
-- Network timeouts
-- Missing or unavailable messages
-- Malformed mbox/RFC822 content
-
-All errors are returned as structured error messages through the MCP protocol.
 
 ## Development
 

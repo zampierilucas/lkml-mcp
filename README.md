@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server for accessing Linux Kernel Mailing List threads via lore.kernel.org. This server provides tools to fetch complete email threads and raw message content from any kernel mailing list archive (lkml, linux-riscv, netdev, etc.).
 
-## Features
+## Tools
 
 - **lkml_get_thread**: Fetch a full thread by message ID, returning all messages in the thread with structured metadata (subject, from, date, message-id, in-reply-to, body content). By default, filters out automated bot messages
 - **lkml_get_raw**: Fetch a single message in raw RFC822 format, useful for getting raw MIME bodies, headers, or inline diffs

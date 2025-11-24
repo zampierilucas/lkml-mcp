@@ -10,12 +10,6 @@ A Model Context Protocol (MCP) server for accessing Linux Kernel Mailing List th
 - **lkml_search_patches**: Search for patches by keywords, subsystem, author, or other criteria. Returns matching patch series and individual patches
 - **Cross-mailing-list support**: Works with any mailing list on lore.kernel.org without hardcoding list names (lkml, linux-riscv, netdev, devicetree, etc.)
 
-## Prerequisites
-
-- Python 3.8+
-- **uvx** - Package runner for Python (install with `pip install uv`)
-- Internet access to `https://lore.kernel.org`
-
 ## Usage Examples
 
 ### Fetch a complete thread
@@ -158,6 +152,12 @@ Then configure in your MCP client:
   }
 }
 ```
+
+## Prerequisites
+
+- Python 3.8+
+- **uvx** - Package runner for Python (install with `pip install uv`)
+- Internet access to `https://lore.kernel.org`
 
 ## Development
 

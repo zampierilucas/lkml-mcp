@@ -96,6 +96,8 @@ async def list_tools() -> List[Tool]:
                         "type": "integer",
                         "description": "Maximum number of messages to retrieve (default: 50)",
                         "default": 50,
+                        "minimum": 1,
+                        "maximum": 200,
                     },
                 },
                 "required": ["email"],
@@ -127,11 +129,14 @@ async def list_tools() -> List[Tool]:
                         "description": (
                             "Only return patches since this date (YYYYMMDD format, e.g., '20250101'). Optional."
                         ),
+                        "pattern": "^\\d{8}$",
                     },
                     "max_results": {
                         "type": "integer",
                         "description": "Maximum number of results to return (default: 20)",
                         "default": 20,
+                        "minimum": 1,
+                        "maximum": 100,
                     },
                 },
                 "required": ["query"],

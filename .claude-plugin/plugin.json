@@ -5,7 +5,7 @@
     "name": "Lucas Zampieri",
     "email": "lzampier@redhat.com"
   },
-  "repository": "https://gitlab.cee.redhat.com/lzampier/lkml-mcp",
+  "repository": "https://github.com/zampierilucas/lkml-mcp",
   "license": "MIT",
   "keywords": ["lkml", "kernel", "linux", "mailing-list", "patches"],
   "mcpServers": {
@@ -13,7 +13,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://gitlab.cee.redhat.com/lzampier/lkml-mcp",
+        "git+https://github.com/zampierilucas/lkml-mcp",
         "lkml-mcp"
       ],
       "env": {}

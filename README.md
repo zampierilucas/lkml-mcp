@@ -153,11 +153,42 @@ Then configure in your MCP client:
 }
 ```
 
+## Configuration
+
+### BASE_URL
+
+By default, the server connects to `https://lore.kernel.org`. You can configure it to use a different lore-compatible archive by setting the `LKML_BASE_URL` environment variable.
+
+**Claude Code (CLI)**:
+```json
+{
+  "mcpServers": {
+    "lkml": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/zampierilucas/lkml-mcp",
+        "lkml-mcp"
+      ],
+      "env": {
+        "LKML_BASE_URL": "https://custom-lore-instance.org"
+      }
+    }
+  }
+}
+```
+
+**Local Installation**:
+```bash
+export LKML_BASE_URL="https://custom-lore-instance.org"
+python -m lkml_mcp.server
+```
+
 ## Prerequisites
 
 - Python 3.8+
 - **uvx** - Package runner for Python (install with `pip install uv`)
-- Internet access to `https://lore.kernel.org`
+- Internet access to `https://lore.kernel.org` (or your configured BASE_URL)
 
 ## Development
 

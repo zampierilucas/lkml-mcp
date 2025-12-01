@@ -1,6 +1,7 @@
 """MCP server for LKML thread retrieval."""
 
 import asyncio
+import os
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server
@@ -18,7 +19,8 @@ from .handlers import (
 )
 
 server = Server("lkml-mcp")
-client = LKMLClient()
+base_url = os.environ.get("LKML_BASE_URL", "https://lore.kernel.org")
+client = LKMLClient(base_url=base_url)
 
 
 @server.list_tools()

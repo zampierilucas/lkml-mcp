@@ -13,8 +13,9 @@ async def handle_lkml_get_thread(client: LKMLClient, arguments: Dict[str, Any]) 
     if not message_id:
         raise ValueError("message_id is required")
 
+    inbox = arguments.get("inbox")
     include_bots = arguments.get("include_bots", False)
-    result = client.get_thread(message_id, include_bots=include_bots)
+    result = client.get_thread(message_id, inbox=inbox, include_bots=include_bots)
 
     lines = [
         f"LKML Thread: {result['message_id']}",
@@ -56,7 +57,8 @@ async def handle_lkml_get_raw(client: LKMLClient, arguments: Dict[str, Any]) -> 
     if not message_id:
         raise ValueError("message_id is required")
 
-    result = client.get_raw(message_id)
+    inbox = arguments.get("inbox")
+    result = client.get_raw(message_id, inbox=inbox)
 
     lines = [
         f"Raw LKML Message for message ID: {result['message_id']}",
@@ -74,8 +76,9 @@ async def handle_lkml_get_user_series(client: LKMLClient, arguments: Dict[str, A
     if not email:
         raise ValueError("email is required")
 
+    inbox = arguments.get("inbox")
     max_results = arguments.get("max_results", 50)
-    result = client.get_user_series(email, max_results=max_results)
+    result = client.get_user_series(email, inbox=inbox, max_results=max_results)
 
     lines = [
         f"Recent patch series for: {result['email']}",
@@ -103,6 +106,7 @@ async def handle_lkml_search_patches(client: LKMLClient, arguments: Dict[str, An
     if not query:
         raise ValueError("query is required")
 
+    inbox = arguments.get("inbox")
     subsystem = arguments.get("subsystem")
     author = arguments.get("author")
     since_date = arguments.get("since_date")
@@ -110,6 +114,7 @@ async def handle_lkml_search_patches(client: LKMLClient, arguments: Dict[str, An
 
     result = client.search_patches(
         query=query,
+        inbox=inbox,
         subsystem=subsystem,
         author=author,
         since_date=since_date,

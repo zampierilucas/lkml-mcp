@@ -125,19 +125,71 @@ class LKMLClient:
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "lkml-mcp/0.1.0"})
         self.BASE_URL = base_url
+        self._supports_universal_redirect = self._detect_universal_redirect_support()
 
-    def get_thread(self, message_id: str, include_bots: bool = False) -> Dict[str, Any]:
-        """Fetch one LKML thread by message-id from lore.kernel.org.
+    def _detect_universal_redirect_support(self) -> bool:
+        """Detect if this instance supports /r/ redirect endpoint.
+
+        Returns:
+            True if instance supports /r/ (like lore.kernel.org)
+            False if instance requires explicit inbox names (like inbox.sourceware.org)
+        """
+        if "lore.kernel.org" in self.BASE_URL:
+            return True
+
+        if "inbox.sourceware.org" in self.BASE_URL or "sourceware.org" in self.BASE_URL:
+            return False
+
+        test_url = f"{self.BASE_URL}/r/test-redirect-detection@example.com/"
+        try:
+            response = self.session.head(test_url, timeout=5, allow_redirects=False)
+            return response.status_code in (200, 302)
+        except Exception:
+            return False
+
+    def _build_url(self, message_id: str, inbox: str | None, suffix: str) -> str:
+        """Build URL based on instance capabilities.
+
+        Args:
+            message_id: The message ID (without angle brackets)
+            inbox: Optional inbox name (required for non-universal-redirect instances)
+            suffix: URL suffix (e.g., 't.mbox.gz', 'raw')
+
+        Returns:
+            Properly formatted URL
+
+        Raises:
+            ValueError: If inbox is required but not provided
+        """
+        if self._supports_universal_redirect:
+            return f"{self.BASE_URL}/r/{message_id}/{suffix}"
+
+        if not inbox:
+            raise ValueError(
+                f"inbox parameter is required for {self.BASE_URL}. "
+                f"Please specify which mailing list/inbox to query. "
+                f"Examples for sourceware: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches'"
+            )
+        return f"{self.BASE_URL}/{inbox}/{message_id}/{suffix}"
+
+    def get_thread(
+        self, message_id: str, inbox: str | None = None, include_bots: bool = False
+    ) -> Dict[str, Any]:
+        """Fetch one LKML thread by message-id from lore.kernel.org or compatible archives.
 
         Args:
             message_id: The message ID (e.g., '20251111105634.1684751-1-lzampier@redhat.com')
+            inbox: Inbox/list name (required for sourceware-style instances). Examples: 'gcc', 'libc-alpha'
             include_bots: If True, include bot messages. If False (default), filter them out.
 
         Returns:
             Dictionary containing list of messages with subject/from/date/body
+
+        Raises:
+            ValueError: If inbox is required but not provided
         """
         message_id = message_id.strip("<>")
-        url = f"{self.BASE_URL}/r/{message_id}/t.mbox.gz"
+        url = self._build_url(message_id, inbox, "t.mbox.gz")
 
         try:
             response = self.session.get(url, timeout=self.timeout)
@@ -213,17 +265,21 @@ class LKMLClient:
         except Exception as e:
             raise LKMLAPIError(f"Failed to parse mbox data: {e}") from e
 
-    def get_raw(self, message_id: str) -> Dict[str, Any]:
+    def get_raw(self, message_id: str, inbox: str | None = None) -> Dict[str, Any]:
         """Fetch a single LKML message in raw RFC822 format.
 
         Args:
             message_id: The message ID (e.g., '20251111105634.1684751-1-lzampier@redhat.com')
+            inbox: Inbox/list name (required for sourceware-style instances). Examples: 'gcc', 'libc-alpha'
 
         Returns:
             Dictionary with message_id and raw message content
+
+        Raises:
+            ValueError: If inbox is required but not provided
         """
         message_id = message_id.strip("<>")
-        url = f"{self.BASE_URL}/r/{message_id}/raw"
+        url = self._build_url(message_id, inbox, "raw")
 
         try:
             response = self.session.get(url, timeout=self.timeout)
@@ -234,17 +290,32 @@ class LKMLClient:
         except requests.exceptions.RequestException as e:
             raise LKMLAPIError(f"Failed to fetch raw message: {e}") from e
 
-    def get_user_series(self, email: str, max_results: int = 50) -> Dict[str, Any]:
+    def get_user_series(
+        self, email: str, inbox: str | None = None, max_results: int = 50
+    ) -> Dict[str, Any]:
         """Find recent patch series by user email.
 
         Args:
             email: User email address (e.g., 'lzampier@redhat.com')
+            inbox: Inbox/list name to search (optional for lore, recommended for sourceware)
             max_results: Maximum number of messages to retrieve (default: 50)
 
         Returns:
             Dictionary containing list of series with their root message IDs
         """
-        url = f"{self.BASE_URL}/all/?q=f:{email}&x=A"
+        # For search, use /all/ if supported, otherwise require inbox
+        if self._supports_universal_redirect:
+            search_path = "all"
+        else:
+            if not inbox:
+                raise ValueError(
+                    f"inbox parameter is required for {self.BASE_URL}. "
+                    f"Please specify which mailing list/inbox to search. "
+                    f"Examples for sourceware: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches'"
+                )
+            search_path = inbox
+
+        url = f"{self.BASE_URL}/{search_path}/?q=f:{email}&x=A"
 
         try:
             response = self.session.get(url, timeout=self.timeout)
@@ -396,6 +467,7 @@ class LKMLClient:
     def search_patches(
         self,
         query: str,
+        inbox: str | None = None,
         subsystem: str | None = None,
         author: str | None = None,
         since_date: str | None = None,
@@ -405,6 +477,7 @@ class LKMLClient:
 
         Args:
             query: Search query string
+            inbox: Inbox/list name to search (optional for lore, recommended for sourceware)
             subsystem: Optional subsystem filter (e.g., 'net', 'kvm')
             author: Optional author email or name filter
             since_date: Optional date filter in YYYYMMDD format
@@ -413,6 +486,18 @@ class LKMLClient:
         Returns:
             Dictionary containing list of matching patches
         """
+        # For search, use /all/ if supported, otherwise require inbox
+        if self._supports_universal_redirect:
+            search_path = "all"
+        else:
+            if not inbox:
+                raise ValueError(
+                    f"inbox parameter is required for {self.BASE_URL}. "
+                    f"Please specify which mailing list/inbox to search. "
+                    f"Examples for sourceware: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches'"
+                )
+            search_path = inbox
+
         search_terms = [query]
 
         if subsystem:
@@ -423,7 +508,7 @@ class LKMLClient:
             search_terms.append(f"dt:{since_date}..")
 
         search_query = " ".join(search_terms)
-        url = f"{self.BASE_URL}/all/?q={search_query}&x=A"
+        url = f"{self.BASE_URL}/{search_path}/?q={search_query}&x=A"
 
         try:
             response = self.session.get(url, timeout=self.timeout)

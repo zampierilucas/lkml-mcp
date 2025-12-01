@@ -5,12 +5,15 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from lkml_mcp.server import call_tool
 
 
+@pytest.mark.asyncio
 async def test_lkml_get_thread():
     """Test the lkml_get_thread tool."""
     print("Testing lkml_get_thread tool...")
@@ -42,6 +45,7 @@ async def test_lkml_get_thread():
         return False
 
 
+@pytest.mark.asyncio
 async def test_lkml_get_raw():
     """Test the lkml_get_raw tool."""
     print("\nTesting lkml_get_raw tool...")
@@ -65,6 +69,7 @@ async def test_lkml_get_raw():
         return False
 
 
+@pytest.mark.asyncio
 async def test_lkml_get_user_series():
     """Test the lkml_get_user_series tool."""
     print("\nTesting lkml_get_user_series tool...")
@@ -96,6 +101,7 @@ async def test_lkml_get_user_series():
         return False
 
 
+@pytest.mark.asyncio
 async def test_lkml_search_patches():
     """Test the lkml_search_patches tool."""
     print("\nTesting lkml_search_patches tool...")
@@ -126,6 +132,7 @@ async def test_lkml_search_patches():
         return False
 
 
+@pytest.mark.asyncio
 async def test_unknown_tool():
     """Test calling an unknown tool."""
     print("\nTesting unknown tool handling...")

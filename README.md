@@ -157,7 +157,7 @@ Then configure in your MCP client:
 
 ### BASE_URL
 
-By default, the server connects to `https://lore.kernel.org`. You can configure it to use a different lore-compatible archive by setting the `LKML_BASE_URL` environment variable.
+By default, the server connects to `https://lore.kernel.org`. You can configure it to use a different public-inbox archive by setting the `LKML_BASE_URL` environment variable.
 
 **Claude Code (CLI)**:
 ```json
@@ -183,6 +183,60 @@ By default, the server connects to `https://lore.kernel.org`. You can configure 
 export LKML_BASE_URL="https://custom-lore-instance.org"
 python -m lkml_mcp.server
 ```
+
+### Multi-Instance Setup
+
+You can configure multiple MCP server instances to access different public-inbox archives simultaneously. This is useful for accessing both Linux kernel mailing lists (lore.kernel.org) and other projects (like GCC, Glibc on inbox.sourceware.org).
+
+**Claude Code (CLI) - Multiple Servers**:
+```json
+{
+  "mcpServers": {
+    "lkml": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/zampierilucas/lkml-mcp",
+        "lkml-mcp"
+      ]
+    },
+    "sourceware": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/zampierilucas/lkml-mcp",
+        "lkml-mcp"
+      ],
+      "env": {
+        "LKML_BASE_URL": "https://inbox.sourceware.org"
+      }
+    }
+  }
+}
+```
+
+With this setup:
+- Use the `lkml` server for Linux kernel mailing lists (no inbox parameter needed)
+- Use the `sourceware` server for GCC, Glibc, GDB, binutils lists (inbox parameter required)
+
+### Instance Types
+
+The server automatically detects the public-inbox instance type:
+
+**Universal Redirect Instances (like lore.kernel.org)**:
+- Support `/r/` redirect endpoint
+- `inbox` parameter is optional
+- Automatically routes to the correct mailing list
+
+**Per-Inbox Instances (like inbox.sourceware.org)**:
+- Require explicit inbox names
+- `inbox` parameter is **required** for all operations
+- Common inbox names:
+  - `gcc` - GCC general discussion
+  - `gcc-patches` - GCC patches
+  - `libc-alpha` - Glibc development
+  - `gdb-patches` - GDB patches
+  - `binutils` - Binutils discussion
 
 ## Prerequisites
 

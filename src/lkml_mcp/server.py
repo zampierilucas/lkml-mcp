@@ -30,7 +30,7 @@ async def list_tools() -> List[Tool]:
         Tool(
             name="lkml_get_thread",
             description=(
-                "Fetch a full LKML thread by message ID from lore.kernel.org. "
+                "Fetch a full LKML thread by message ID from lore.kernel.org or compatible public-inbox instances. "
                 "Returns all messages in the thread with subject, from, date, "
                 "message-id, in-reply-to, and body content. By default, "
                 "filters out automated bot messages (kernel test robot, "
@@ -44,6 +44,13 @@ async def list_tools() -> List[Tool]:
                         "description": (
                             "The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). "
                             "Can be provided with or without angle brackets."
+                        ),
+                    },
+                    "inbox": {
+                        "type": "string",
+                        "description": (
+                            "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org). "
+                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
                         ),
                     },
                     "include_bots": {
@@ -61,7 +68,7 @@ async def list_tools() -> List[Tool]:
         Tool(
             name="lkml_get_raw",
             description=(
-                "Fetch a single LKML message in raw RFC822 format from lore.kernel.org. "
+                "Fetch a single LKML message in raw RFC822 format from lore.kernel.org or compatible public-inbox instances. "
                 "Useful for getting raw MIME bodies, headers, or inline diffs."
             ),
             inputSchema={
@@ -73,7 +80,14 @@ async def list_tools() -> List[Tool]:
                             "The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). "
                             "Can be provided with or without angle brackets."
                         ),
-                    }
+                    },
+                    "inbox": {
+                        "type": "string",
+                        "description": (
+                            "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org). "
+                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
+                        ),
+                    },
                 },
                 "required": ["message_id"],
             },
@@ -94,6 +108,13 @@ async def list_tools() -> List[Tool]:
                         "type": "string",
                         "description": "User email address (e.g., 'lzampier@redhat.com')",
                     },
+                    "inbox": {
+                        "type": "string",
+                        "description": (
+                            "Inbox/list name to search (required for sourceware-style instances, optional for lore.kernel.org). "
+                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
+                        ),
+                    },
                     "max_results": {
                         "type": "integer",
                         "description": "Maximum number of messages to retrieve (default: 50)",
@@ -109,7 +130,7 @@ async def list_tools() -> List[Tool]:
             name="lkml_search_patches",
             description=(
                 "Search for patches by keywords, subsystem, author, or other criteria. "
-                "Returns matching patch series and individual patches from lore.kernel.org."
+                "Returns matching patch series and individual patches from lore.kernel.org or compatible public-inbox instances."
             ),
             inputSchema={
                 "type": "object",
@@ -117,6 +138,13 @@ async def list_tools() -> List[Tool]:
                     "query": {
                         "type": "string",
                         "description": "Search query string (e.g., 'kvm', 'memory leak', 'driver bug fix')",
+                    },
+                    "inbox": {
+                        "type": "string",
+                        "description": (
+                            "Inbox/list name to search (required for sourceware-style instances, optional for lore.kernel.org). "
+                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
+                        ),
                     },
                     "subsystem": {
                         "type": "string",

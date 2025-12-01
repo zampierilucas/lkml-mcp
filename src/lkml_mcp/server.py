@@ -41,24 +41,15 @@ async def list_tools() -> List[Tool]:
                 "properties": {
                     "message_id": {
                         "type": "string",
-                        "description": (
-                            "The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). "
-                            "Can be provided with or without angle brackets."
-                        ),
+                        "description": "Message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com')",
                     },
                     "inbox": {
                         "type": "string",
-                        "description": (
-                            "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org). "
-                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
-                        ),
+                        "description": "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org)",
                     },
                     "include_bots": {
                         "type": "boolean",
-                        "description": (
-                            "If true, include automated bot messages (kernel test robot, CI notifications, etc.). "
-                            "If false or omitted (default), filter them out."
-                        ),
+                        "description": "Include automated bot messages (kernel test robot, CI bots). Default false filters them out.",
                         "default": False,
                     },
                 },
@@ -76,17 +67,11 @@ async def list_tools() -> List[Tool]:
                 "properties": {
                     "message_id": {
                         "type": "string",
-                        "description": (
-                            "The message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com'). "
-                            "Can be provided with or without angle brackets."
-                        ),
+                        "description": "Message ID to fetch (e.g., '20251111105634.1684751-1-lzampier@redhat.com')",
                     },
                     "inbox": {
                         "type": "string",
-                        "description": (
-                            "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org). "
-                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
-                        ),
+                        "description": "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org)",
                     },
                 },
                 "required": ["message_id"],
@@ -110,14 +95,11 @@ async def list_tools() -> List[Tool]:
                     },
                     "inbox": {
                         "type": "string",
-                        "description": (
-                            "Inbox/list name to search (required for sourceware-style instances, optional for lore.kernel.org). "
-                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
-                        ),
+                        "description": "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org)",
                     },
                     "max_results": {
                         "type": "integer",
-                        "description": "Maximum number of messages to retrieve (default: 50)",
+                        "description": "Maximum number of messages to retrieve",
                         "default": 50,
                         "minimum": 1,
                         "maximum": 200,
@@ -137,33 +119,28 @@ async def list_tools() -> List[Tool]:
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Search query string (e.g., 'kvm', 'memory leak', 'driver bug fix')",
+                        "description": "Search query string",
                     },
                     "inbox": {
                         "type": "string",
-                        "description": (
-                            "Inbox/list name to search (required for sourceware-style instances, optional for lore.kernel.org). "
-                            "Examples: 'gcc', 'gcc-patches', 'libc-alpha', 'gdb-patches', 'binutils'"
-                        ),
+                        "description": "Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org)",
                     },
                     "subsystem": {
                         "type": "string",
-                        "description": "Filter by subsystem (e.g., 'net', 'kvm', 'riscv', 'mm'). Optional.",
+                        "description": "Filter by subsystem (e.g., 'net', 'kvm', 'riscv', 'mm')",
                     },
                     "author": {
                         "type": "string",
-                        "description": "Filter by author email or name. Optional.",
+                        "description": "Filter by author email or name",
                     },
                     "since_date": {
                         "type": "string",
-                        "description": (
-                            "Only return patches since this date (YYYYMMDD format, e.g., '20250101'). Optional."
-                        ),
+                        "description": "Return patches since this date in YYYYMMDD format",
                         "pattern": "^\\d{8}$",
                     },
                     "max_results": {
                         "type": "integer",
-                        "description": "Maximum number of results to return (default: 20)",
+                        "description": "Maximum number of results to return",
                         "default": 20,
                         "minimum": 1,
                         "maximum": 100,

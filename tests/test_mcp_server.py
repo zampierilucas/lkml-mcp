@@ -48,6 +48,56 @@ async def test_call_tool(monkeypatch):
     assert "From: someone" in result.content[0].text
 
 
+EMPTY_RESULTS = {
+    "get_thread": {"message_id": "m", "messages": []},
+    "get_raw": {"message_id": "m", "raw": ""},
+    "get_user_series": {"email": "e", "series": []},
+    "get_patch": {"message_id": "m", "series": False, "patches": []},
+    "get_thread_summary": {
+        "subject": "s", "author": "a", "date": "d", "total_messages": 0,
+        "participants": [], "tags": [], "messages": [],
+    },
+    "compare_patch_versions": {
+        "old_version": {"version": "v1", "patch_count": 0, "message_id": "old"},
+        "new_version": {"version": "v2", "patch_count": 0, "message_id": "new"},
+        "changes": [], "patches_added": [], "patches_removed": [],
+    },
+    "search_patches": {"query": "q", "filters": {}, "total_results": 0, "results": []},
+}
+
+TOOL_ARGS = {
+    "lkml_get_thread": {"message_id": "m@example.com", "inbox": "lkml", "include_bots": True},
+    "lkml_get_raw": {"message_id": "m@example.com", "inbox": "lkml"},
+    "lkml_get_user_series": {"email": "e@example.com", "inbox": "lkml", "max_results": 5},
+    "lkml_get_patch": {"message_id": "m@example.com", "inbox": "lkml", "series": True},
+    "lkml_get_thread_summary": {"message_id": "m@example.com", "include_bots": True},
+    "lkml_compare_patch_versions": {"old_message_id": "a@example.com", "new_message_id": "b@example.com"},
+    "lkml_search_patches": {"query": "riscv", "subsystem": "net", "author": "x", "since_date": "20250101"},
+}
+
+
+@pytest.mark.parametrize("tool_name", sorted(EXPECTED_TOOLS))
+@pytest.mark.asyncio
+async def test_every_tool_dispatches(tool_name, monkeypatch):
+    """Each tool reaches its client method and forwards the arguments it was given."""
+    client_method = tool_name.removeprefix("lkml_")
+    forwarded = []
+
+    def record(*args, **kwargs):
+        forwarded.extend(args)
+        forwarded.extend(kwargs.values())
+        return EMPTY_RESULTS[client_method]
+
+    monkeypatch.setattr(f"lkml_mcp.tools.client.{client_method}", record)
+    result = await mcp.call_tool(tool_name, TOOL_ARGS[tool_name])
+
+    assert not result.is_error
+    assert result.content[0].text
+    # every argument must reach the client, positionally or by keyword
+    for key, value in TOOL_ARGS[tool_name].items():
+        assert value in forwarded, f"{tool_name} dropped {key}"
+
+
 @pytest.mark.asyncio
 async def test_missing_required_argument():
     with pytest.raises(ToolError, match="message_id"):

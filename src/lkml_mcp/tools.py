@@ -1,20 +1,41 @@
-"""Tool handlers for LKML thread retrieval."""
+"""Tool definitions for LKML thread retrieval."""
 
-from typing import Any, Dict, List
+import os
+from typing import Annotated
 
-from mcp.types import TextContent
+from mcp.server import MCPServer
+from pydantic import Field
 
 from .client import LKMLClient
 
+mcp = MCPServer("lkml-mcp", version="0.1.0")
+client = LKMLClient(base_url=os.environ.get("LKML_BASE_URL", "https://lore.kernel.org"))
 
-async def handle_lkml_get_thread(client: LKMLClient, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle lkml_get_thread tool call."""
-    message_id = arguments.get("message_id")
-    if not message_id:
-        raise ValueError("message_id is required")
+MessageId = Annotated[
+    str,
+    Field(description="Message ID (e.g., '20251111105634.1684751-1-lzampier@redhat.com')"),
+]
+Inbox = Annotated[
+    str | None,
+    Field(description="Inbox/list name (required for sourceware-style instances, optional for lore.kernel.org)"),
+]
+IncludeBots = Annotated[
+    bool,
+    Field(description="Include automated bot messages (kernel test robot, CI bots)."),
+]
 
-    inbox = arguments.get("inbox")
-    include_bots = arguments.get("include_bots", False)
+
+@mcp.tool(
+    description=(
+        "Fetch a full LKML thread by message ID from lore.kernel.org or compatible public-inbox instances. "
+        "Returns all messages in the thread with subject, from, date, "
+        "message-id, in-reply-to, and body content. By default, "
+        "filters out automated bot messages (kernel test robot, "
+        "CI bots, etc.)."
+    ),
+    structured_output=False,
+)
+async def lkml_get_thread(message_id: MessageId, inbox: Inbox = None, include_bots: IncludeBots = False) -> str:
     result = client.get_thread(message_id, inbox=inbox, include_bots=include_bots)
 
     lines = [
@@ -48,16 +69,17 @@ async def handle_lkml_get_thread(client: LKMLClient, arguments: Dict[str, Any]) 
             lines.append(f"    {line}")
         lines.append("")
 
-    return [TextContent(type="text", text="\n".join(lines))]
+    return "\n".join(lines)
 
 
-async def handle_lkml_get_raw(client: LKMLClient, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle lkml_get_raw tool call."""
-    message_id = arguments.get("message_id")
-    if not message_id:
-        raise ValueError("message_id is required")
-
-    inbox = arguments.get("inbox")
+@mcp.tool(
+    description=(
+        "Fetch a single LKML message in raw RFC822 format from lore.kernel.org or compatible public-inbox instances. "
+        "Useful for getting raw MIME bodies, headers, or inline diffs."
+    ),
+    structured_output=False,
+)
+async def lkml_get_raw(message_id: MessageId, inbox: Inbox = None) -> str:
     result = client.get_raw(message_id, inbox=inbox)
 
     lines = [
@@ -67,17 +89,24 @@ async def handle_lkml_get_raw(client: LKMLClient, arguments: Dict[str, Any]) -> 
         result["raw"],
     ]
 
-    return [TextContent(type="text", text="\n".join(lines))]
+    return "\n".join(lines)
 
 
-async def handle_lkml_get_user_series(client: LKMLClient, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle lkml_get_user_series tool call."""
-    email = arguments.get("email")
-    if not email:
-        raise ValueError("email is required")
-
-    inbox = arguments.get("inbox")
-    max_results = arguments.get("max_results", 50)
+@mcp.tool(
+    description=(
+        "Find recent patch series and messages by user email address. "
+        "Returns a list of patch series (with cover letters and "
+        "patches grouped together) and standalone messages. Useful "
+        "for discovering what patches a user has recently proposed "
+        "or been involved in."
+    ),
+    structured_output=False,
+)
+async def lkml_get_user_series(
+    email: Annotated[str, Field(description="User email address (e.g., 'lzampier@redhat.com')")],
+    inbox: Inbox = None,
+    max_results: Annotated[int, Field(ge=1, le=200, description="Maximum number of messages to retrieve")] = 50,
+) -> str:
     result = client.get_user_series(email, inbox=inbox, max_results=max_results)
 
     lines = [
@@ -97,19 +126,26 @@ async def handle_lkml_get_user_series(client: LKMLClient, arguments: Dict[str, A
         lines.append(f"    URL: {series['url']}")
         lines.append("")
 
-    return [TextContent(type="text", text="\n".join(lines))]
+    return "\n".join(lines)
 
 
-async def handle_lkml_get_patch(client: LKMLClient, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle lkml_get_patch tool call."""
-    message_id = arguments.get("message_id")
-    if not message_id:
-        raise ValueError("message_id is required")
-
-    inbox = arguments.get("inbox")
-    include_bots = arguments.get("include_bots", False)
-    series = arguments.get("series", False)
-
+@mcp.tool(
+    description=(
+        "Fetch patches from lore.kernel.org in git am-ready mbox format. "
+        "Can fetch a single patch or all patches in a series. "
+        "Returns file paths to clean mbox files suitable for 'git am'."
+    ),
+    structured_output=False,
+)
+async def lkml_get_patch(
+    message_id: MessageId,
+    inbox: Inbox = None,
+    include_bots: IncludeBots = False,
+    series: Annotated[
+        bool,
+        Field(description="If true, fetch all patches in the series. If false, fetch only this single patch."),
+    ] = False,
+) -> str:
     result = client.get_patch(message_id, inbox=inbox, include_bots=include_bots, series=series)
 
     lines = [
@@ -127,18 +163,19 @@ async def handle_lkml_get_patch(client: LKMLClient, arguments: Dict[str, Any]) -
         lines.append(f"    Path: {patch['path']}")
         lines.append("")
 
-    return [TextContent(type="text", text="\n".join(lines))]
+    return "\n".join(lines)
 
 
-async def handle_lkml_get_thread_summary(client: LKMLClient, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle lkml_get_thread_summary tool call."""
-    message_id = arguments.get("message_id")
-    if not message_id:
-        raise ValueError("message_id is required")
-
-    inbox = arguments.get("inbox")
-    include_bots = arguments.get("include_bots", False)
-
+@mcp.tool(
+    description=(
+        "Get a structured summary of an LKML thread: reply hierarchy, "
+        "participants, and review tags (Reviewed-by, Acked-by, etc.)."
+    ),
+    structured_output=False,
+)
+async def lkml_get_thread_summary(
+    message_id: MessageId, inbox: Inbox = None, include_bots: IncludeBots = False
+) -> str:
     result = client.get_thread_summary(message_id, inbox=inbox, include_bots=include_bots)
 
     lines = [
@@ -174,18 +211,25 @@ async def handle_lkml_get_thread_summary(client: LKMLClient, arguments: Dict[str
             lines.append(f"  {indent}  Tags: {', '.join(tag_strs)}")
         lines.append("")
 
-    return [TextContent(type="text", text="\n".join(lines))]
+    return "\n".join(lines)
 
 
-async def handle_lkml_compare_patch_versions(client: LKMLClient, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle lkml_compare_patch_versions tool call."""
-    old_message_id = arguments.get("old_message_id")
-    new_message_id = arguments.get("new_message_id")
-    if not old_message_id or not new_message_id:
-        raise ValueError("old_message_id and new_message_id are required")
-
-    inbox = arguments.get("inbox")
-
+@mcp.tool(
+    description=(
+        "Compare two versions of a patch series. Shows subject changes, "
+        "file differences, and new/removed patches between versions."
+    ),
+    structured_output=False,
+)
+async def lkml_compare_patch_versions(
+    old_message_id: Annotated[
+        str, Field(description="Message ID of the older version's cover letter or first patch")
+    ],
+    new_message_id: Annotated[
+        str, Field(description="Message ID of the newer version's cover letter or first patch")
+    ],
+    inbox: Inbox = None,
+) -> str:
     result = client.compare_patch_versions(old_message_id, new_message_id, inbox=inbox)
 
     old_v = result["old_version"]
@@ -232,21 +276,30 @@ async def handle_lkml_compare_patch_versions(client: LKMLClient, arguments: Dict
     if not result["changes"] and not result["patches_added"] and not result["patches_removed"]:
         lines.append("No differences found between versions.")
 
-    return [TextContent(type="text", text="\n".join(lines))]
+    return "\n".join(lines)
 
 
-async def handle_lkml_search_patches(client: LKMLClient, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle lkml_search_patches tool call."""
-    query = arguments.get("query")
-    if not query:
-        raise ValueError("query is required")
-
-    inbox = arguments.get("inbox")
-    subsystem = arguments.get("subsystem")
-    author = arguments.get("author")
-    since_date = arguments.get("since_date")
-    max_results = arguments.get("max_results", 20)
-
+@mcp.tool(
+    description=(
+        "Search for patches by keywords, subsystem, author, or other criteria. "
+        "Returns matching patch series and individual patches from lore.kernel.org "
+        "or compatible public-inbox instances."
+    ),
+    structured_output=False,
+)
+async def lkml_search_patches(
+    query: Annotated[str, Field(description="Search query string")],
+    inbox: Inbox = None,
+    subsystem: Annotated[
+        str | None, Field(description="Filter by subsystem (e.g., 'net', 'kvm', 'riscv', 'mm')")
+    ] = None,
+    author: Annotated[str | None, Field(description="Filter by author email or name")] = None,
+    since_date: Annotated[
+        str | None,
+        Field(pattern=r"^\d{8}$", description="Return patches since this date in YYYYMMDD format"),
+    ] = None,
+    max_results: Annotated[int, Field(ge=1, le=100, description="Maximum number of results to return")] = 20,
+) -> str:
     result = client.search_patches(
         query=query,
         inbox=inbox,
@@ -303,4 +356,4 @@ async def handle_lkml_search_patches(client: LKMLClient, arguments: Dict[str, An
         lines.append(f"    URL: {item['url']}")
         lines.append("")
 
-    return [TextContent(type="text", text="\n".join(lines))]
+    return "\n".join(lines)

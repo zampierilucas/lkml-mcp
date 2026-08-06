@@ -9,9 +9,9 @@ description = "MCP server for Linux Kernel Mailing List (LKML) thread retrieval"
 authors = [{name = "Lucas Zampieri", email = "lzampier@redhat.com"}]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=2.0.0",
     "requests>=2.25.0",
 ]
 
@@ -36,21 +36,21 @@ where = ["src"]
 
 [tool.black]
 line-length = 120
-target-version = ['py38']
+target-version = ['py310']
 
 [tool.isort]
 profile = "black"
 line_length = 120
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
 line-length = 120
-target-version = "py38"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = [

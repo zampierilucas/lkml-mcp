@@ -58,7 +58,7 @@ Any other MCP client takes the same `uvx` command — drop this into its config:
 
 **Claude Desktop** — download `lkml.mcpb` from this repo (or build it with `mcpb pack . lkml.mcpb`), then Settings → Extensions → drag it in → **Enable**.
 
-**Local clone** — for hacking on the server itself:
+**Local clone** — for hacking on the server itself (needs Python 3.10+):
 ```bash
 git clone https://github.com/zampierilucas/lkml-mcp.git
 cd lkml-mcp && pip install -e .
@@ -191,7 +191,7 @@ python -m lkml_mcp.server
 
 ### Transport (stdio / SSE / Streamable HTTP)
 
-Runs on stdio by default; can also be exposed over HTTP so multiple clients share one process.
+Runs on stdio by default; can also be exposed over HTTP so multiple clients share one process. Streamable HTTP is stateless under the 2026-07-28 spec — requests can hit any instance behind a load balancer. SSE is deprecated and kept only for older clients.
 
 | Flag | Default | Env override |
 |------|---------|--------------|

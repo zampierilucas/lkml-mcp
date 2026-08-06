@@ -5,7 +5,7 @@ import gzip
 import os
 import re
 import xml.etree.ElementTree as ET
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import quote_plus
 
 import requests
@@ -511,7 +511,7 @@ class LKMLClient:
 
     def get_thread(
         self, message_id: str, inbox: str | None = None, include_bots: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch one LKML thread by message-id from lore.kernel.org or compatible archives.
 
         Args:
@@ -578,7 +578,7 @@ class LKMLClient:
         except Exception as e:
             raise LKMLAPIError(f"Failed to parse mbox data: {e}") from e
 
-    def get_raw(self, message_id: str, inbox: str | None = None) -> Dict[str, Any]:
+    def get_raw(self, message_id: str, inbox: str | None = None) -> dict[str, Any]:
         """Fetch a single LKML message in raw RFC822 format.
 
         Args:
@@ -656,7 +656,7 @@ class LKMLClient:
         inbox: str | None = None,
         include_bots: bool = False,
         series: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch patches in git am-ready mbox format.
 
         Can fetch a single patch or discover and fetch all patches in a series.
@@ -741,7 +741,7 @@ class LKMLClient:
         message_id: str,
         inbox: str | None = None,
         include_bots: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get a structured summary of a thread with reply hierarchy and review tags.
 
         Args:
@@ -793,7 +793,7 @@ class LKMLClient:
 
             # Build reply tree
             by_id = {m["message_id"]: m for m in parsed}
-            children: Dict[str, list] = {}
+            children: dict[str, list] = {}
             roots = []
 
             for m in parsed:
@@ -826,7 +826,7 @@ class LKMLClient:
                     ordered.append(m)
 
             # Aggregate participants
-            participant_counts: Dict[tuple, int] = {}
+            participant_counts: dict[tuple, int] = {}
             for m in parsed:
                 key = (m["from_name"], m["from_email"])
                 participant_counts[key] = participant_counts.get(key, 0) + 1
@@ -884,7 +884,7 @@ class LKMLClient:
         old_message_id: str,
         new_message_id: str,
         inbox: str | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Compare two versions of a patch series.
 
         Args:
@@ -1017,7 +1017,7 @@ class LKMLClient:
 
     def get_user_series(
         self, email: str, inbox: str | None = None, max_results: int = 50
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Find recent patch series by user email.
 
         Args:
@@ -1156,7 +1156,7 @@ class LKMLClient:
         author: str | None = None,
         since_date: str | None = None,
         max_results: int = 20,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Search for patches by keywords and filters.
 
         Args:

@@ -163,6 +163,23 @@ def _parse_review_tags(body: str) -> list[dict]:
     return tags
 
 
+_PATCH_TAG = r"\[[^\]]*\bPATCH\b"
+"""Opening of a bracketed patch tag, allowing any prefix: [PATCH], [RFC PATCH v2 1/3],
+[RESEND PATCH], [PATCH net-next 1/3]."""
+
+
+def _is_patch_subject(subject: str) -> bool:
+    """Check whether a subject line carries a bracketed patch tag.
+
+    Args:
+        subject: Email subject (e.g., '[RFC PATCH 0/1] Add foo')
+
+    Returns:
+        True if the subject is tagged as a patch
+    """
+    return bool(re.search(_PATCH_TAG, subject, flags=re.IGNORECASE))
+
+
 def _parse_patch_subject(subject: str) -> dict:
     """Extract patch metadata from a subject line.
 
@@ -173,8 +190,9 @@ def _parse_patch_subject(subject: str) -> dict:
         Dict with is_patch, version, patch_number, total
     """
     match = re.search(
-        r"\[(?:RFC\s+)?PATCH[^\]]*?(?:\s*v(\d+))?[^\]]*?(?:\s+(\d+)/(\d+))?\]",
+        _PATCH_TAG + r"[^\]]*?(?:\s*v(\d+))?[^\]]*?(?:\s+(\d+)/(\d+))?\]",
         subject,
+        flags=re.IGNORECASE,
     )
     if not match:
         return {"is_patch": False, "version": None, "patch_number": None, "total": None}
@@ -640,7 +658,7 @@ class LKMLClient:
                 continue
 
             # Only include messages that look like patches
-            if "[PATCH" not in subject:
+            if not _is_patch_subject(subject):
                 continue
 
             cleaned = self._clean_message(raw_msg)
@@ -916,7 +934,7 @@ class LKMLClient:
                         continue
                     if _is_bot_message(from_field):
                         continue
-                    if "[PATCH" not in subject:
+                    if not _is_patch_subject(subject):
                         continue
 
                     body = self._decode_payload(msg)
@@ -931,7 +949,7 @@ class LKMLClient:
                             "patch_number": patch_info["patch_number"],
                             "subject": subject,
                             "title": re.sub(
-                                r"\[(?:RFC\s+)?PATCH[^\]]*\]\s*", "", subject
+                                _PATCH_TAG + r"[^\]]*\]\s*", "", subject
                             ),
                             "files": metadata["files"],
                             "stats": metadata["stats"],
@@ -1058,7 +1076,7 @@ class LKMLClient:
                 # Normalize the entire patch prefix to group all versions together
                 # Remove RFC, version numbers, and patch numbers
                 series_key = re.sub(
-                    r"\[(?:RFC\s+)?PATCH[^\]]*\]",
+                    _PATCH_TAG + r"[^\]]*\]",
                     "[PATCH]",
                     series_key,
                 )
@@ -1076,7 +1094,7 @@ class LKMLClient:
                 series_key = entry["series_key"]
                 version_key = entry["version_key"]
 
-                cover_match = re.search(r"\[(?:RFC\s+)?PATCH[^\]]*\s+0/(\d+)\]", title)
+                cover_match = re.search(_PATCH_TAG + r"[^\]]*\s+0/(\d+)\]", title)
                 if cover_match:
                     # Always mark version as seen, even if we skip this cover letter
                     # This prevents patches from skipped versions from being added
@@ -1105,7 +1123,7 @@ class LKMLClient:
                     continue
 
                 # Check for first patch in a series (e.g., [PATCH 1/3])
-                first_patch_match = re.search(r"\[(?:RFC\s+)?PATCH[^\]]*\s+1/(\d+)\]", title)
+                first_patch_match = re.search(_PATCH_TAG + r"[^\]]*\s+1/(\d+)\]", title)
                 if first_patch_match:
                     series_list.append(
                         {
@@ -1122,7 +1140,7 @@ class LKMLClient:
                     continue
 
                 # Check for standalone patch (e.g., [PATCH] without X/N notation)
-                if re.search(r"\[(?:RFC\s+)?PATCH[^\]]*\]", title) and not re.search(r"\d+/\d+", title):
+                if re.search(_PATCH_TAG + r"[^\]]*\]", title) and not re.search(r"\d+/\d+", title):
                     series_list.append(
                         {
                             "message_id": entry["message_id"],
@@ -1193,12 +1211,12 @@ class LKMLClient:
             results = []
             for entry in raw_entries:
                 title = entry["title"]
-                is_patch = "[PATCH" in title
+                is_patch = _is_patch_subject(title)
                 patch_info = {}
 
                 if is_patch:
-                    version_match = re.search(r"\[PATCH[^\]]*v(\d+)", title)
-                    series_match = re.search(r"\[PATCH[^\]]*\s+(\d+)/(\d+)\]", title)
+                    version_match = re.search(_PATCH_TAG + r"[^\]]*v(\d+)", title, flags=re.IGNORECASE)
+                    series_match = re.search(_PATCH_TAG + r"[^\]]*\s+(\d+)/(\d+)\]", title, flags=re.IGNORECASE)
 
                     if version_match:
                         patch_info["version"] = int(version_match.group(1))

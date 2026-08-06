@@ -714,6 +714,12 @@ class LKMLClient:
                 raw_messages = self._fetch_mbox(message_id, inbox)
                 patches = []
 
+                # The mbox holds the whole thread, so pick the message that was
+                # actually asked for; fall back to the first patch in the thread
+                # only when the requested one isn't there.
+                requested = None
+                fallback = None
+
                 for raw_msg in raw_messages:
                     if not raw_msg.strip():
                         continue
@@ -723,14 +729,18 @@ class LKMLClient:
                     from_field = msg.get("from", "")
                     msg_id = msg.get("message-id", "").strip("<>")
 
-                    # Skip replies
-                    if re.match(r"^Re:\s*", subject, flags=re.IGNORECASE):
-                        continue
+                    if msg_id == message_id:
+                        requested = (msg_id, subject, raw_msg)
+                        break
 
-                    # Skip bots unless requested
-                    if not include_bots and _is_bot_message(from_field):
-                        continue
+                    is_reply = re.match(r"^Re:\s*", subject, flags=re.IGNORECASE)
+                    is_bot = not include_bots and _is_bot_message(from_field)
+                    if fallback is None and not is_reply and not is_bot:
+                        fallback = (msg_id, subject, raw_msg)
 
+                chosen = requested or fallback
+                if chosen:
+                    msg_id, subject, raw_msg = chosen
                     cleaned = self._clean_message(raw_msg)
                     path = self._save_patch(msg_id, cleaned, patch_dir)
                     patches.append(
@@ -740,8 +750,6 @@ class LKMLClient:
                             "path": path,
                         }
                     )
-                    # In single mode, only save the first actual patch
-                    break
 
             return {
                 "message_id": message_id,
